@@ -1,0 +1,6 @@
+import {createClient} from '@supabase/supabase-js';
+
+const supabaseUrl='https://vaxtgiedwxknhwsfanac.supabase.co';
+const supabaseAnonKey='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZheHRnaWVkd3hrbmh3c2ZhbmFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxNzQ2ODMsImV4cCI6MjA2Nzc1MDY4M30.t5yrW3Y8lzY6DRwlpTagDZA5XoGPoCiTzMJ7PxA4lzQ';
+
+export const supabase=createClient(supabaseUrl,supabaseAnonKey);
