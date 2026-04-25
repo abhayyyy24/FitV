@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState,useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,8 @@ import {
   ViewToken,
   Image,
 } from 'react-native';
-import Colors from '@/constants/Colors';
-
+import { useTheme } from '@/utlis/ThemeContext';
+import { colors } from '@/constants/Colors';
 const { width } = Dimensions.get('window');
 
 // Update this to match your actual image paths
@@ -42,6 +42,8 @@ interface OnboardingProps {
 export default function Onboarding({ onDone }: OnboardingProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+
+  const{theme}=useTheme();
 
   const handleNext = () => {
     if (currentIndex < slides.length - 1) {
@@ -104,7 +106,7 @@ export default function Onboarding({ onDone }: OnboardingProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     paddingTop: 60,
     alignItems: 'center',
     
@@ -125,13 +127,13 @@ const styles = StyleSheet.create({
     fontSize: 25,
     fontFamily: 'Bold',
     textAlign: 'center',
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginTop:50,
   },
   subtitle: {
     fontSize: 16,
     fontFamily: 'Regular',
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 20,
     paddingHorizontal: 20,
@@ -150,12 +152,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   activeDot: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     width: 12,
     height: 12,
   },
   button: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     paddingHorizontal: 30,
     paddingVertical: 14,
     borderRadius: 30,

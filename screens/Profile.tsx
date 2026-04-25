@@ -1,17 +1,47 @@
-import React,{useState} from 'react';
+import React,{useEffect, useState} from 'react';
 import { View, Text, StyleSheet,Image,TouchableOpacity,Switch,ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/Colors';
 import TopBar from '@/components/ui/Topbar';
+import { supabase } from '@/utlis/supabaseClient';
+import { Alert } from 'react-native';
 
 
-const name='Abhay'
-const email="pawar2abhay1910@gmail.com"
 const status='connected'
 
 
-export default function Profile() {
+export default function Profile({navigation}:any) {
+  
+  const[name,setName]=useState('');
+  const[email,setEmail]=useState('');
+  //User name and email
+  useEffect(()=>{
+    const fetchUserData=async()=>{
+      const{data:{user},error}=await supabase.auth.getUser();
 
+      if(user){
+        setName(user.user_metadata?.name||'unnamed');
+        setEmail(user.email||'');
+      }else{
+        console.log('User fetch error:',error?.message);
+      }
+    };
+    fetchUserData();
+  },[]);
+
+  //Logout function
+  const handleLogout=async()=>{
+    const{error}=await supabase.auth.signOut();
+    if(error){
+      Alert.alert('Logout failed',error.message);
+    }else{
+      navigation.reset({
+        index:0,
+        routes:[{name:'Auth'}],
+      });
+    }
+  };
+  
   const[notificationsEnabled,setNotificationsEnabled]=useState(false);
   const[darkModeEnabled,setDarkModeEnabled]=useState(false);
 
@@ -72,7 +102,7 @@ export default function Profile() {
 
 
 
-      <TouchableOpacity style={styles.logoutButton}>
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
 
@@ -150,7 +180,7 @@ const styles = StyleSheet.create({
   },
   logoutButton:{
     marginTop:30,
-    backgroundColor:Colors.error,
+    backgroundColor:'#FF3131',
     padding:14,
     borderRadius:12,
     alignItems:'center',

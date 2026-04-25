@@ -3,7 +3,7 @@ import {View,Text,StyleSheet,TextInput,TouchableOpacity,Image,TouchableWithoutFe
 import Colors from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/utlis/supabaseClient";
-import ConfirmEmail from "./ConfirmEmail";
+
 
 export default function Auth({navigation}:any){
   const[isLogin,setIsLogin]=useState(true);

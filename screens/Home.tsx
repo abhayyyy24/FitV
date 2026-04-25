@@ -1,141 +1,238 @@
-import React from 'react';
-import { View, Text,Image, StyleSheet,ScrollView,Dimensions, TouchableOpacity } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors from '@/constants/Colors';
+import { supabase } from '@/utlis/supabaseClient';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useRef, useState } from 'react';
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { readSampleData } from '@/utlis/useHealthConnect';
 
 const screenWidth = Dimensions.get('window').width;
 const cardWidth = (screenWidth - 3 * 16) / 2;
 
 export default function Home() {
+  const [userName, setUserName] = useState('');
+  const [stepCount,setStepCount]=useState<number>(0);
+  const [caloriesBurned,setCaloriesBurned]=useState<number>(0);
+  
 
-  const userName="Abhay";//placeholder for name
-  const Status="Healthy";//placeholder for status
-  const Subtitle1="Keep it Up";
-  const Subtitle2="Healthy lifestyle on track";
-  const color="lime";
-  const stepcount="232"
-  const kcalcount="32"
+  useEffect(()=>{
+    const fetchData=async()=>{
+      const data=await readSampleData();
+      console.log('Health Data:', data);
+      const totalSteps = data.steps?.records.reduce((acc, curr) => acc + (curr.count ?? 0), 0);
+      const totalCalories = data.calories?.records.reduce((acc, curr) => acc + (curr.energy?.inKilocalories ?? 0), 0);
+
+
+      setStepCount(totalSteps);
+      setCaloriesBurned(totalCalories);
+    };
+    fetchData();
+  },[]);
+
+  const [status, setStatus] = useState(0); // 0 = Healthy, 1 = Moderate, 2 = At Risk
+  const previousMetrics = useRef<Metrics>({
+    heart_rate: 170,
+    spo2: 70,
+    steps: 4000,
+    sleep: 2,
+    stress: 9,
+  });
+
+  type Metrics={
+    heart_rate: number;
+    spo2: number;
+    steps: number;
+    sleep: number;
+    stress: number;
+  };
+
+  type MetricKey=keyof Metrics;
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const name = user.user_metadata?.name || 'User';
+        setUserName(name);
+      }
+    };
+
+    const initialMetrics:Metrics = {
+      heart_rate: 170,
+      spo2: 70,
+      steps: 4000,
+      sleep: 2,
+      stress: 9,
+    };
+
+    
+
+    fetchUser();
+    fetchHealthStatus(initialMetrics);
+    previousMetrics.current = initialMetrics;
+
+    const interval = setInterval(() => {
+      const newMetrics = {
+        heart_rate: 98,
+        spo2: 95,
+        steps: 4000,
+        sleep: 7,
+        stress: 2,
+      };
+
+      const changed = (Object.keys(newMetrics) as MetricKey[]).some(
+        key => newMetrics[key] !== previousMetrics.current[key]
+      );
+
+      if (changed) {
+        fetchHealthStatus(newMetrics);
+        previousMetrics.current = newMetrics;
+      }
+    }, 30000); // every 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Predict API call
+  const fetchHealthStatus = async (metrics:Metrics) => {
+    try {
+      const response = await fetch('https://fitv-api.onrender.com/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          heart_rate: 90,
+          spo2: 90,
+          steps: 4000,
+          sleep: 2,
+          stress: 8
+        }),
+      });
+
+      const data = await response.json();
+      setStatus(data.status);
+    } catch (error) {
+      console.error('Health status fetch failed:', error);
+    }
+  };
+
+  // UI data
+  const statusText = ['Healthy', 'Moderate', 'At Risk'][status];
+  const subtitle1 = status === 0 ? 'Keep it up' : status === 1 ? 'Be mindful' : 'Take action';
+  const subtitle2 = status === 0 ? 'Healthy lifestyle on track' : status === 1 ? 'Watch your habits' : 'Health at risk';
+  const color = ['lime', 'orange', 'red'][status];
+  
+
   const suggestions = [
-  {
-    icon: 'water-outline',
-    title: 'Stay Hydrated',
-    description: 'Drink 2 more glasses of water today to stay energized.',
-  },
-  {
-    icon: 'walk-outline',
-    title: 'Move Around',
-    description: 'Take a 5-minute walk to reduce inactivity.',
-  },
-  {
-    icon: 'bed-outline',
-    title: 'Sleep Tip',
-    description: 'Try to get at least 7 hours of sleep tonight.',
-  },
-];
-  const healthQuotes = [
-  "Health is wealth.",
-  "Your body hears everything your mind says. Stay positive.",
-  "Eat clean, stay fit, and live longer.",
-  "Take care of your body. It's the only place you have to live.",
-  "Sleep is the best meditation.",
-  "A fit body, a calm mind. That is true wealth.",
-  "Exercise not only changes your body, it changes your mind.",
-];
-  const today = new Date().getDate();
-  const quoteOTheDay=healthQuotes[today %healthQuotes.length]
+    {
+      icon: 'water-outline',
+      title: 'Stay Hydrated',
+      description: 'Drink 2 more glasses of water today to stay energized.',
+    },
+    {
+      icon: 'walk-outline',
+      title: 'Move Around',
+      description: 'Take a 5-minute walk to reduce inactivity.',
+    },
+    {
+      icon: 'bed-outline',
+      title: 'Sleep Tip',
+      description: 'Try to get at least 7 hours of sleep tonight.',
+    },
+  ];
 
+  const healthQuotes = [
+    "Health is wealth.",
+    "Your body hears everything your mind says. Stay positive.",
+    "Eat clean, stay fit, and live longer.",
+    "Take care of your body. It's the only place you have to live.",
+    "Sleep is the best meditation.",
+    "A fit body, a calm mind. That is true wealth.",
+    "Exercise not only changes your body, it changes your mind.",
+  ];
+
+  const today = new Date().getDate();
+  const quoteOTheDay = healthQuotes[today % healthQuotes.length];
 
   return (
     <ScrollView style={styles.container}>
-      
-      
       <View style={styles.toprow}>
-        <Image style={styles.logo} source={require('../assets/images/logo.png')}/>
-        <Image style={styles.profile} source={require('../assets/images/icon.png')}/>
+        <Image style={styles.logo} source={require('../assets/images/logo.png')} />
+        <Image style={styles.profile} source={require('../assets/images/icon.png')} />
       </View>
-
 
       <View style={styles.headerContainer}>
-        
-        <Text style={styles.username}>Hi,{userName}!</Text>
+        <Text style={styles.username}>Hi, {userName}!</Text>
       </View>
-
 
       <View style={styles.healthcard}>
         <Image
-      source={require('../assets/images/contour.png')}
-      style={styles.contourImage}
-      resizeMode="cover"
-       />
-
+          source={require('../assets/images/contour.png')}
+          style={styles.contourImage}
+          resizeMode="cover"
+        />
         <View style={styles.cardheader}>
           <View style={styles.glow}>
-            <Ionicons name='ellipse' size={30} color={color}/>
+            <Ionicons name="ellipse" size={30} color={color} />
           </View>
-          
-          <Text style={styles.healthcardtitle}>{Status}.</Text>
+          <Text style={styles.healthcardtitle}>{statusText}.</Text>
         </View>
-        <Text style={styles.subtitle}>{Subtitle1} !</Text>
-        <Text style={styles.subtitle}>{Subtitle2} .</Text>
+        <Text style={styles.subtitle}>{subtitle1}!</Text>
+        <Text style={styles.subtitle}>{subtitle2}.</Text>
       </View>
 
       <View style={styles.qcontainer}>
-        <Text style={styles.qtext}>{quoteOTheDay}</Text>
+        <Text style={styles.qtext}>" {quoteOTheDay} "</Text>
       </View>
 
-     
       <View style={styles.Activitysection}>
         <Text style={styles.Activityheader}>Activity Summary</Text>
         <View style={styles.cardrow}>
-        <View style={styles.card}>
-          <View style={styles.cardtoprow}>
-            <Ionicons name='footsteps' size={35} color={Colors.warning}/>
-            <Text style={styles.cardheading}>Steps Taken</Text>
+          <View style={styles.card}>
+            <View style={styles.cardtoprow}>
+              <Ionicons name="footsteps" size={35} color={Colors.warning} />
+              <Text style={styles.cardheading}>Steps Taken</Text>
+            </View>
+            <View style={styles.count}>
+              <Text>
+                <Text style={styles.number}>{stepCount} </Text>
+                <Text style={styles.label}>steps</Text>
+              </Text>
+            </View>
           </View>
-          <View style={styles.count}>
-            <Text>
-              <Text style={styles.number}>{stepcount} </Text>
-              <Text style={styles.label}>steps</Text>
-            </Text>
-          </View>
-        </View>
 
-
-        <View style={styles.card}>
-          <View style={styles.cardtoprow}>
-            <Ionicons name='flame-sharp' size={35} color={Colors.error}/>
-            <Text style={styles.cardheading}>Calories</Text>
+          <View style={styles.card}>
+            <View style={styles.cardtoprow}>
+              <Ionicons name="flame-sharp" size={35} color={Colors.error} />
+              <Text style={styles.cardheading}>Calories</Text>
+            </View>
+            <View style={styles.count}>
+              <Text>
+                <Text style={styles.number}>{caloriesBurned.toFixed(0)} </Text>
+                <Text style={styles.label}>kcal</Text>
+              </Text>
+            </View>
           </View>
-          <View style={styles.count}>
-            <Text>
-              <Text style={styles.number}>{kcalcount} </Text>
-              <Text style={styles.label}>kcal</Text>
-            </Text>
-          </View>
-        </View>
         </View>
       </View>
 
-
       <View style={styles.sugsection}>
         <Text style={styles.sugheader}>Suggestions</Text>
-        {suggestions.map((item,index)=>(
+        {suggestions.map((item, index) => (
           <View key={index} style={styles.sugcard}>
-            <Ionicons name={item.icon as any} size={28} color={Colors.primary}/>
+            <Ionicons name={item.icon as any} size={28} color={Colors.primary} />
             <Text style={styles.sugtitle}>{item.title}</Text>
             <Text style={styles.sugtext}>{item.description}</Text>
           </View>
         ))}
       </View>
-      
-      <TouchableOpacity onPress={()=>AsyncStorage.removeItem('hasSeenOnboarding')}>
+
+      <TouchableOpacity onPress={() => AsyncStorage.removeItem('hasSeenOnboarding')}>
         <Text style={styles.reset}>reset</Text>
       </TouchableOpacity>
-
     </ScrollView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container:{

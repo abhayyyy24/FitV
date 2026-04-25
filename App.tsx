@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppNavigator from './navigation/Navigation';
 import { supabase } from './utlis/supabaseClient';
+import { ThemeProvider } from './utlis/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -48,6 +49,8 @@ export default function App() {
   if(!fontsLoaded||!initialRoute)return null;
 
   return(
+    <ThemeProvider>
     <AppNavigator initialRoute={initialRoute} onDone={handleOnboardingComplete}/>
+    </ThemeProvider>
   );
 }
